@@ -81,3 +81,5 @@ SUPABASE_ANON_KEY=your-anon-key
 - TypeScript is configured for both frontend and backend
 - ESLint and Prettier are set up for code formatting
 - Both applications include hot-reload functionality for development
+
+Small change here
