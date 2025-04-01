@@ -11,13 +11,34 @@ const ProtectedTestData = () => {
   const [loading, setLoading] = useState<boolean>(false);
 
   const fetchProtectedData = async () => {
+    setLoading(true);
     try {
-      const { data: protectedData, error } = await supabase
-        .from("protected_data")
-        .select("*");
+      // Get current user session
+      const { data: sessionData } = await supabase.auth.getSession();
 
-      if (error) throw error;
-      setData(protectedData);
+      if (!sessionData.session?.access_token) {
+        throw new Error("No active session found");
+      }
+
+      // Call our new backend endpoint with the access token
+      const response = await fetch("http://localhost:5001/protected-data", {
+        headers: {
+          Authorization: `Bearer ${sessionData.session.access_token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Server responded with status: ${response.status}`);
+      }
+
+      const result = await response.json();
+
+      if (result.status === "error") {
+        throw new Error(result.message);
+      }
+
+      setData(result.data);
     } catch (err) {
       setError(err instanceof Error ? err.message : "An unknown error occured");
     } finally {
