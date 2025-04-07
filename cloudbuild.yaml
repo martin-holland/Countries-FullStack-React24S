@@ -90,7 +90,7 @@ steps:
     args:
       - "run"
       - "deploy"
-      - "countries-app" # Your Cloud Run service name
+      - "countries-fullstack-react24s" # Your Cloud Run service name - CHANGED FROM countries-app
       - "--image"
       # Deploy the specific commit SHA image
       - "${_ARTIFACT_REGISTRY_REGION}-docker.pkg.dev/$PROJECT_ID/${_ARTIFACT_REGISTRY_REPO}/countries-app:$COMMIT_SHA"
@@ -103,18 +103,7 @@ steps:
       # Set runtime environment variables for the NestJS backend
       # Use secrets from Secret Manager via substitutions for sensitive values
       - "--set-env-vars"
-      - >- # Use >- for cleaner multi-line formatting
-        NODE_ENV=production,
-        SUPABASE_URL=${_SUPABASE_URL},
-        SUPABASE_ANON_KEY=${_SUPABASE_ANON_KEY}
-      # Add other runtime variables if needed, e.g., FRONTEND_URL for CORS if deploying separately later
-      # - '--update-secrets=SUPABASE_SERVICE_KEY=your-supabase-service-key-secret:latest' # Example if using service key securely
-      # Optional: Set resource limits
-      # - '--memory=512Mi'
-      # - '--cpu=1'
-      # Optional: Set min/max instances for scaling
-      # - '--min-instances=0' # Default, scales to zero
-      # - '--max-instances=5'
+      - "NODE_ENV=production,SUPABASE_URL=${_SUPABASE_URL},SUPABASE_ANON_KEY=${_SUPABASE_ANON_KEY},OPENWEATHER_API_KEY=${_VITE_OPENWEATHER_API_KEY}"
     id: "Deploy to Cloud Run"
 
   # Debug step to print container logs after deployment
@@ -126,7 +115,7 @@ steps:
         echo "===== DEBUG: CHECKING DEPLOYMENT STATUS ====="
         echo "Waiting for service to be fully deployed..."
         sleep 30
-        gcloud run services describe countries-app --region=${_CLOUD_RUN_REGION} --format="value(status.url)" || echo "Service not yet available"
+        gcloud run services describe countries-fullstack-react24s --region=${_CLOUD_RUN_REGION} --format="value(status.url)" || echo "Service not yet available"
         echo "============================================="
     id: "Debug-Deployment-Status"
 
@@ -138,9 +127,9 @@ images:
 # Define substitutions - these will be provided by your Cloud Build Trigger
 substitutions:
   # --- Required ---
-  _CLOUD_RUN_REGION: "us-central1"
-  _ARTIFACT_REGISTRY_REGION: "us-central1"
-  _ARTIFACT_REGISTRY_REPO: "countries-app-repo"
+  _CLOUD_RUN_REGION: "europe-north1" # Updated to match your deployment
+  _ARTIFACT_REGISTRY_REGION: "europe-north1" # Updated to match your deployment
+  _ARTIFACT_REGISTRY_REPO: "cloud-run-source-deploy/countries-fullstack-react24s" # Updated to match your actual repo name
   # --- Secrets (Best Practice: Link these to Secret Manager in the Trigger UI) ---
   _SUPABASE_URL: "https://vznnpdwqmdisgjguujos.supabase.co"
   _SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ6bm5wZHdxbWRpc2dqZ3V1am9zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzg5MjI0MTQsImV4cCI6MjA1NDQ5ODQxNH0.S2xs4yLSDGpcSmREse-1i8DGnn9EQdYuIH4KJuYvlTo"

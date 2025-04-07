@@ -44,6 +44,11 @@ FROM node:18-slim
 # Set working directory
 WORKDIR /app
 
+# Set runtime environment variables for backend (temporary for debugging)
+ENV SUPABASE_URL="https://vznnpdwqmdisgjguujos.supabase.co"
+ENV SUPABASE_ANON_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ6bm5wZHdxbWRpc2dqZ3V1am9zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzg5MjI0MTQsImV4cCI6MjA1NDQ5ODQxNH0.S2xs4yLSDGpcSmREse-1i8DGnn9EQdYuIH4KJuYvlTo"
+ENV NODE_ENV="production"
+
 # Copy package files and install production dependencies
 COPY --from=builder /app/package*.json ./
 COPY --from=builder /app/backend/package*.json ./backend/
