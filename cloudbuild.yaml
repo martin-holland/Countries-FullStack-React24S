@@ -1,0 +1,33 @@
+steps:
+  # Build the container image
+  - name: "gcr.io/cloud-builders/docker"
+    args: ["build", "-t", "gcr.io/$PROJECT_ID/countries-app:$COMMIT_SHA", "."]
+
+  # Push the container image to Container Registry
+  - name: "gcr.io/cloud-builders/docker"
+    args: ["push", "gcr.io/$PROJECT_ID/countries-app:$COMMIT_SHA"]
+
+  # Deploy container image to Cloud Run
+  - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
+    entrypoint: gcloud
+    args:
+      - "run"
+      - "deploy"
+      - "countries-app"
+      - "--image"
+      - "gcr.io/$PROJECT_ID/countries-app:$COMMIT_SHA"
+      - "--region"
+      - "us-central1"
+      - "--platform"
+      - "managed"
+      - "--allow-unauthenticated"
+      - "--set-env-vars"
+      - "NODE_ENV=production,SUPABASE_URL=${_SUPABASE_URL},SUPABASE_KEY=${_SUPABASE_KEY}"
+
+# Store images in Google Container Registry
+images:
+  - "gcr.io/$PROJECT_ID/countries-app:$COMMIT_SHA"
+
+substitutions:
+  _SUPABASE_URL: "" # Will be set in Cloud Build trigger
+  _SUPABASE_KEY: "" # Will be set in Cloud Build trigger
