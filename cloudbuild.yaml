@@ -138,15 +138,15 @@ images:
 # Define substitutions - these will be provided by your Cloud Build Trigger
 substitutions:
   # --- Required ---
-  _CLOUD_RUN_REGION: "us-central1" # Replace with your desired Cloud Run region
-  _ARTIFACT_REGISTRY_REGION: "us-central1" # Replace with your Artifact Registry region
-  _ARTIFACT_REGISTRY_REPO: "countries-app-repo" # Replace with your Artifact Registry repository name
+  _CLOUD_RUN_REGION: "us-central1"
+  _ARTIFACT_REGISTRY_REGION: "us-central1"
+  _ARTIFACT_REGISTRY_REPO: "countries-app-repo"
   # --- Secrets (Best Practice: Link these to Secret Manager in the Trigger UI) ---
-  _SUPABASE_URL: "" # Runtime URL for Backend
-  _SUPABASE_ANON_KEY: "" # Runtime Key for Backend (and Build-time for Frontend)
-  _VITE_SUPABASE_URL: "" # Build-time URL for Frontend (can often be the same as _SUPABASE_URL)
-  _VITE_SUPABASE_ANON_KEY: "" # Build-time Key for Frontend (can often be the same as _SUPABASE_ANON_KEY)
-  _VITE_OPENWEATHER_API_KEY: "" # Build-time Key for Frontend Weather API
+  _SUPABASE_URL: "https://vznnpdwqmdisgjguujos.supabase.co"
+  _SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ6bm5wZHdxbWRpc2dqZ3V1am9zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzg5MjI0MTQsImV4cCI6MjA1NDQ5ODQxNH0.S2xs4yLSDGpcSmREse-1i8DGnn9EQdYuIH4KJuYvlTo"
+  _VITE_SUPABASE_URL: "https://vznnpdwqmdisgjguujos.supabase.co"
+  _VITE_SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ6bm5wZHdxbWRpc2dqZ3V1am9zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzg5MjI0MTQsImV4cCI6MjA1NDQ5ODQxNH0.S2xs4yLSDGpcSmREse-1i8DGnn9EQdYuIH4KJuYvlTo"
+  _VITE_OPENWEATHER_API_KEY: "c3cb87f69a79390fb71062c4fa9f0209"
 
 # Optional: Specify timeout for the build
 timeout: "1200s" # 20 minutes
