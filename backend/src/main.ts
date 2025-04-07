@@ -3,7 +3,23 @@ import { NestExpressApplication } from '@nestjs/platform-express';
 import { join } from 'path';
 import { AppModule } from './app.module';
 
+// Debug function to print environment variables
+function logEnvironmentVariables() {
+  console.log('===== DEBUG: NESTJS ENVIRONMENT VARIABLES =====');
+  console.log(`NODE_ENV: ${process.env.NODE_ENV}`);
+  console.log(`PORT: ${process.env.PORT}`);
+  console.log(`SUPABASE_URL: ${process.env.SUPABASE_URL}`);
+  // Only print the first few characters of sensitive values
+  const anonKey = process.env.SUPABASE_ANON_KEY || '';
+  console.log(`SUPABASE_ANON_KEY: ${anonKey.substring(0, 10)}...`);
+  console.log(`FRONTEND_URL: ${process.env.FRONTEND_URL}`);
+  console.log('==============================================');
+}
+
 async function bootstrap() {
+  // Log environment variables for debugging
+  logEnvironmentVariables();
+
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
   // Only serve static files in non-serverless environments

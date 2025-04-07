@@ -15,6 +15,13 @@ ENV VITE_SUPABASE_URL=$VITE_SUPABASE_URL
 ENV VITE_SUPABASE_ANON_KEY=$VITE_SUPABASE_ANON_KEY
 ENV VITE_OPENWEATHER_API_KEY=$VITE_OPENWEATHER_API_KEY
 
+# Debug: Print build-time environment variables
+RUN echo "===== DEBUG: BUILD-TIME ENVIRONMENT VARIABLES =====" && \
+    echo "VITE_SUPABASE_URL: $VITE_SUPABASE_URL" && \
+    echo "VITE_SUPABASE_ANON_KEY: $VITE_SUPABASE_ANON_KEY" && \
+    echo "VITE_OPENWEATHER_API_KEY: $VITE_OPENWEATHER_API_KEY" && \
+    echo "=================================================="
+
 # Copy package files
 COPY package*.json ./
 COPY frontend/package*.json ./frontend/
@@ -55,5 +62,16 @@ RUN echo '{"scripts":{"start":"cd backend && node dist/main.js"}}' > start-packa
 ENV PORT=8080
 EXPOSE 8080
 
-# Use a direct command to start the app
-CMD ["node", "backend/dist/main.js"] 
+# Create a wrapper script to print environment variables at runtime
+RUN echo '#!/bin/bash\n\
+    echo "===== DEBUG: RUNTIME ENVIRONMENT VARIABLES ====="\n\
+    echo "NODE_ENV: $NODE_ENV"\n\
+    echo "PORT: $PORT"\n\
+    echo "SUPABASE_URL: $SUPABASE_URL"\n\
+    echo "SUPABASE_ANON_KEY: $SUPABASE_ANON_KEY"\n\
+    echo "FRONTEND_URL: $FRONTEND_URL"\n\
+    echo "================================================"\n\
+    node backend/dist/main.js\n' > /app/start.sh && chmod +x /app/start.sh
+
+# Use the wrapper script to start the app
+CMD ["/app/start.sh"] 

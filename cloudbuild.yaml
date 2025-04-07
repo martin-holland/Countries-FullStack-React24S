@@ -1,4 +1,19 @@
 steps:
+  # Debug step to print build-time substitution variables
+  - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
+    entrypoint: "bash"
+    args:
+      - "-c"
+      - |
+        echo "===== DEBUG: SUBSTITUTION VARIABLES ====="
+        echo "SUPABASE_URL: ${_SUPABASE_URL}"
+        echo "SUPABASE_ANON_KEY: ${_SUPABASE_ANON_KEY}"
+        echo "VITE_SUPABASE_URL: ${_VITE_SUPABASE_URL}"
+        echo "VITE_SUPABASE_ANON_KEY: ${_VITE_SUPABASE_ANON_KEY}"
+        echo "VITE_OPENWEATHER_API_KEY: ${_VITE_OPENWEATHER_API_KEY}"
+        echo "============================================"
+    id: "Debug-Substitutions"
+
   # 1. Enable Docker BuildKit for potential build speed improvements & better secret handling (optional but recommended)
   - name: "gcr.io/cloud-builders/docker"
     entrypoint: "bash"
@@ -54,6 +69,21 @@ steps:
       ]
     id: "Push Latest Tag"
 
+  # Debug step before Cloud Run deployment
+  - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
+    entrypoint: "bash"
+    args:
+      - "-c"
+      - |
+        echo "===== DEBUG: CLOUD RUN DEPLOYMENT VARIABLES ====="
+        echo "NODE_ENV: production"
+        echo "SUPABASE_URL: ${_SUPABASE_URL}"
+        echo "SUPABASE_ANON_KEY: ${_SUPABASE_ANON_KEY}"
+        echo "CLOUD_RUN_REGION: ${_CLOUD_RUN_REGION}"
+        echo "ARTIFACT_REGISTRY: ${_ARTIFACT_REGISTRY_REGION}-docker.pkg.dev/$PROJECT_ID/${_ARTIFACT_REGISTRY_REPO}/countries-app:$COMMIT_SHA"
+        echo "==================================================="
+    id: "Debug-Deployment-Vars"
+
   # 4. Deploy container image to Cloud Run
   - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
     entrypoint: gcloud
@@ -86,6 +116,19 @@ steps:
       # - '--min-instances=0' # Default, scales to zero
       # - '--max-instances=5'
     id: "Deploy to Cloud Run"
+
+  # Debug step to print container logs after deployment
+  - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
+    entrypoint: "bash"
+    args:
+      - "-c"
+      - |
+        echo "===== DEBUG: CHECKING DEPLOYMENT STATUS ====="
+        echo "Waiting for service to be fully deployed..."
+        sleep 30
+        gcloud run services describe countries-app --region=${_CLOUD_RUN_REGION} --format="value(status.url)" || echo "Service not yet available"
+        echo "============================================="
+    id: "Debug-Deployment-Status"
 
 # Store images in Artifact Registry
 images:
