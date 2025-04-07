@@ -1,33 +1,109 @@
 steps:
-  # Build the container image
+  # 1. Enable Docker BuildKit for potential build speed improvements & better secret handling (optional but recommended)
   - name: "gcr.io/cloud-builders/docker"
-    args: ["build", "-t", "gcr.io/$PROJECT_ID/countries-app:$COMMIT_SHA", "."]
+    entrypoint: "bash"
+    args:
+      [
+        "-c",
+        'echo "export DOCKER_BUILDKIT=1" >> /workspace/.env && cat /workspace/.env',
+      ]
+    id: "Enable BuildKit"
 
-  # Push the container image to Container Registry
+  # 2. Build the container image using the Dockerfile in the root
+  #    Pass build-time environment variables needed by the frontend (Vite)
   - name: "gcr.io/cloud-builders/docker"
-    args: ["push", "gcr.io/$PROJECT_ID/countries-app:$COMMIT_SHA"]
+    args:
+      - "build"
+      - "--tag"
+      # Use Artifact Registry (preferred over GCR). Replace REGION and YOUR_REPO_NAME.
+      - "${_ARTIFACT_REGISTRY_REGION}-docker.pkg.dev/$PROJECT_ID/${_ARTIFACT_REGISTRY_REPO}/countries-app:$COMMIT_SHA"
+      - "--tag"
+      - "${_ARTIFACT_REGISTRY_REGION}-docker.pkg.dev/$PROJECT_ID/${_ARTIFACT_REGISTRY_REPO}/countries-app:latest"
+      # Pass frontend build-time variables as build arguments
+      # IMPORTANT: Ensure these are prefixed with VITE_ in your frontend code (e.g., import.meta.env.VITE_SUPABASE_URL)
+      - "--build-arg"
+      - "VITE_SUPABASE_URL=${_VITE_SUPABASE_URL}"
+      - "--build-arg"
+      # Use the ANON key for the frontend build
+      - "VITE_SUPABASE_ANON_KEY=${_VITE_SUPABASE_ANON_KEY}"
+      - "--build-arg"
+      - "VITE_OPENWEATHER_API_KEY=${_VITE_OPENWEATHER_API_KEY}"
+      - "." # Build context is the root directory
+    id: "Build Image"
+    env:
+      # Make build-time vars available to the build process (read by Dockerfile ARG, then ENV)
+      - "VITE_SUPABASE_URL=${_VITE_SUPABASE_URL}"
+      - "VITE_SUPABASE_ANON_KEY=${_VITE_SUPABASE_ANON_KEY}"
+      - "VITE_OPENWEATHER_API_KEY=${_VITE_OPENWEATHER_API_KEY}"
 
-  # Deploy container image to Cloud Run
+  # 3. Push the container image to Artifact Registry
+  - name: "gcr.io/cloud-builders/docker"
+    args:
+      [
+        "push",
+        "${_ARTIFACT_REGISTRY_REGION}-docker.pkg.dev/$PROJECT_ID/${_ARTIFACT_REGISTRY_REPO}/countries-app:$COMMIT_SHA",
+      ]
+    id: "Push Specific Tag"
+
+  # Push the 'latest' tag as well
+  - name: "gcr.io/cloud-builders/docker"
+    args:
+      [
+        "push",
+        "${_ARTIFACT_REGISTRY_REGION}-docker.pkg.dev/$PROJECT_ID/${_ARTIFACT_REGISTRY_REPO}/countries-app:latest",
+      ]
+    id: "Push Latest Tag"
+
+  # 4. Deploy container image to Cloud Run
   - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
     entrypoint: gcloud
     args:
       - "run"
       - "deploy"
-      - "countries-app"
+      - "countries-app" # Your Cloud Run service name
       - "--image"
-      - "gcr.io/$PROJECT_ID/countries-app:$COMMIT_SHA"
+      # Deploy the specific commit SHA image
+      - "${_ARTIFACT_REGISTRY_REGION}-docker.pkg.dev/$PROJECT_ID/${_ARTIFACT_REGISTRY_REPO}/countries-app:$COMMIT_SHA"
       - "--region"
-      - "us-central1"
+      # Specify the region for your Cloud Run service
+      - "${_CLOUD_RUN_REGION}"
       - "--platform"
       - "managed"
-      - "--allow-unauthenticated"
+      - "--allow-unauthenticated" # Consider changing to --no-allow-unauthenticated and setting up IAM/IAP for production
+      # Set runtime environment variables for the NestJS backend
+      # Use secrets from Secret Manager via substitutions for sensitive values
       - "--set-env-vars"
-      - "NODE_ENV=production,SUPABASE_URL=${_SUPABASE_URL},SUPABASE_KEY=${_SUPABASE_KEY}"
+      - >- # Use >- for cleaner multi-line formatting
+        NODE_ENV=production,
+        SUPABASE_URL=${_SUPABASE_URL},
+        SUPABASE_ANON_KEY=${_SUPABASE_ANON_KEY}
+      # Add other runtime variables if needed, e.g., FRONTEND_URL for CORS if deploying separately later
+      # - '--update-secrets=SUPABASE_SERVICE_KEY=your-supabase-service-key-secret:latest' # Example if using service key securely
+      # Optional: Set resource limits
+      # - '--memory=512Mi'
+      # - '--cpu=1'
+      # Optional: Set min/max instances for scaling
+      # - '--min-instances=0' # Default, scales to zero
+      # - '--max-instances=5'
+    id: "Deploy to Cloud Run"
 
-# Store images in Google Container Registry
+# Store images in Artifact Registry
 images:
-  - "gcr.io/$PROJECT_ID/countries-app:$COMMIT_SHA"
+  - "${_ARTIFACT_REGISTRY_REGION}-docker.pkg.dev/$PROJECT_ID/${_ARTIFACT_REGISTRY_REPO}/countries-app:$COMMIT_SHA"
+  - "${_ARTIFACT_REGISTRY_REGION}-docker.pkg.dev/$PROJECT_ID/${_ARTIFACT_REGISTRY_REPO}/countries-app:latest"
 
+# Define substitutions - these will be provided by your Cloud Build Trigger
 substitutions:
-  _SUPABASE_URL: "" # Will be set in Cloud Build trigger
-  _SUPABASE_KEY: "" # Will be set in Cloud Build trigger
+  # --- Required ---
+  _CLOUD_RUN_REGION: "us-central1" # Replace with your desired Cloud Run region
+  _ARTIFACT_REGISTRY_REGION: "us-central1" # Replace with your Artifact Registry region
+  _ARTIFACT_REGISTRY_REPO: "countries-app-repo" # Replace with your Artifact Registry repository name
+  # --- Secrets (Best Practice: Link these to Secret Manager in the Trigger UI) ---
+  _SUPABASE_URL: "" # Runtime URL for Backend
+  _SUPABASE_ANON_KEY: "" # Runtime Key for Backend (and Build-time for Frontend)
+  _VITE_SUPABASE_URL: "" # Build-time URL for Frontend (can often be the same as _SUPABASE_URL)
+  _VITE_SUPABASE_ANON_KEY: "" # Build-time Key for Frontend (can often be the same as _SUPABASE_ANON_KEY)
+  _VITE_OPENWEATHER_API_KEY: "" # Build-time Key for Frontend Weather API
+
+# Optional: Specify timeout for the build
+timeout: "1200s" # 20 minutes
